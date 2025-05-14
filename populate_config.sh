@@ -20,7 +20,7 @@ generate_config_json() {
 generate_secrets() {
     echo $(
         docker run --rm -v $PWD/config/secrets.json.template:/usr/src/app/secrets.json.template \
-            ghcr.io/flare-labs-ltd/fasset-bots:latest yarn key-gen generateSecrets \
+            ghcr.io/flare-foundation/fasset-bots:latest yarn key-gen generateSecrets \
             --agent $AGENT_MANAGEMENT_ADDRESS --other -c "./packages/fasset-bots-core/run-config/${CHAIN}-bot.json"
     )
 }

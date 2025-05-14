@@ -101,7 +101,7 @@ services:
 
   ui:
     profiles: [agent-ui]
-    image: ghcr.io/flare-labs-ltd/fasset-agent-ui:latest
+    image: ghcr.io/flare-foundation/fasset-agent-ui:latest
     container_name: ${COMPOSE_PROJECT_NAME}-ui
     restart: unless-stopped
     environment:
