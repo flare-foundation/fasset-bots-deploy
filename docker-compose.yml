@@ -1,6 +1,6 @@
 x-templates:
   x-fasset-bot-template: &fasset-bot
-    image: ghcr.io/flare-labs-ltd/fasset-bots:latest
+    image: ghcr.io/flare-foundation/fasset-bots:latest
     restart: unless-stopped
     stdin_open: true
     tty: true
