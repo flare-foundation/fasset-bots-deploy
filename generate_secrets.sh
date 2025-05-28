@@ -6,8 +6,13 @@ generate_secrets() {
     )
 }
 
+if [[ -e "$PWD/secrets.json" ]]; then
+    echo 'error: local file "secrets.json" already exists, remove it manually before proceeding.'
+    exit 1
+fi
+
 if [ -z "$1" ]; then
-    echo "Error: please provide the agent's management address as the argument"
+    echo "error: please provide the agent's management address as the argument"
     exit 1
 fi
 
