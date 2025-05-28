@@ -1,29 +1,22 @@
 #!/usr/bin/env bash
+
+# require installed jq
+if ! command -v jq > /dev/null 2>&1; then
+  echo "Error: jq is not installed."
+  exit 1
+fi
+
+# import .env
 source <(grep -v '^#' "./.env" | sed -E 's|^(.+)=(.*)$|: ${\1=\2}; export \1|g')
 
+# params
+DOCKER_USER_UID=1000
 CONFIG_PATH="$PWD/config.json"
 SECRETS_PATH="$PWD/secrets.json"
 
-NOTIFIER_API_URL="http://localhost:1234${BACKEND_PATH}"
-API_NOTIFIER_CONFIG=$(cat <<EOF
-{
-    "apiKey": "${NOTIFIER_API_KEY}",
-    "apiUrl": "${NOTIFIER_API_URL}"
-}
-EOF
-)
-
-generate_config_json() {
-    echo "{}"
-}
-
-generate_secrets() {
-    echo $(
-        docker run --rm -v $PWD/config/secrets.json.template:/usr/src/app/secrets.json.template \
-            ghcr.io/flare-foundation/fasset-bots:latest yarn key-gen generateSecrets \
-            --agent $AGENT_MANAGEMENT_ADDRESS --other -c "./packages/fasset-bots-core/run-config/${CHAIN}-bot.json"
-    )
-}
+# consts
+NOTIFIER_API_URL="http://localhost:1234$BACKEND_PATH"
+FXRP_SYMBOL=$([ $CHAIN == 'flare' -o $CHAIN == 'songbird' ] && echo FXRP || echo FTestXRP)
 
 safe_json_update() {
     tmp="$(mktemp "$(dirname "$2")/config.XXXXXX.json")"
@@ -51,40 +44,39 @@ fetch_secrets_json() {
     cat "$SECRETS_PATH" | jq "$1"
 }
 
-# create config if not exists
-if [ ! -e $CONFIG_PATH ]; then
-    echo "config file $CONFIG_PATH does not exist, generating a new one."
-    generate_config_json | jq > $CONFIG_PATH
-fi
-
 # create secrets if not exist
 if [ ! -e $SECRETS_PATH ]; then
-    echo "secrets file $SECRETS_PATH does not exist, generating a new one."
-    generate_secrets | jq > $SECRETS_PATH
+    echo "secrets file $SECRETS_PATH does not exist, please generate one using 'bash generate_secrets.sh' and store them safely."
+    exit 1
 fi
 
-# write chain configuration
-update_config_json ".extends = \"${CHAIN}-bot-postgresql.json\""
+# create config if not exists
+if [ ! -e $CONFIG_PATH ]; then
+    "{}" | jq > $CONFIG_PATH
+fi
 
-# write frontend password inside config
-update_secrets_json ".apiKey.agent_bot = \"${FRONTEND_PASSWORD}\""
-
-# write notifier api key inside secrets
-update_secrets_json ".apiKey.notifier_key = \"${NOTIFIER_API_KEY}\""
+# write chain config
+update_config_json ".extends = \"$CHAIN-bot-postgresql.json\""
 
 # write database config
 update_config_json ".
     | (.ormOptions.type = \"postgresql\")
     | (.ormOptions.host = \"postgres\")
-    | (.ormOptions.dbName = \"${FASSET_DB_NAME}\")
+    | (.ormOptions.dbName = \"$FASSET_DB_NAME\")
     | (.ormOptions.port = 5432)"
 
 # write database secrets
 update_secrets_json ".
-    | (.database.user = \"${FASSET_DB_USER}\")
-    | (.database.password = \"${FASSET_DB_PASSWORD}\")"
+    | (.database.user = \"$FASSET_DB_USER\")
+    | (.database.password = \"$FASSET_DB_PASSWORD\")"
 
-# update notifier api key inside config
+# write frontend password inside config
+update_secrets_json ".apiKey.agent_bot = \"$FRONTEND_PASSWORD\""
+
+# write notifier api key inside secrets
+update_secrets_json ".apiKey.notifier_key = \"$NOTIFIER_API_KEY\""
+
+# write notifier api key inside config
 push_notifier_config=1
 if ! jq -e 'has("apiNotifierConfigs")' $CONFIG_PATH > /dev/null; then
     update_config_json '.apiNotifierConfigs = []'
@@ -98,5 +90,91 @@ else
     done
 fi
 if [ $push_notifier_config == 1 ]; then
-    update_config_json ".apiNotifierConfigs += [$API_NOTIFIER_CONFIG]"
+    update_config_json ".apiNotifierConfigs += [$(jq -n \
+        --arg apiKey "$NOTIFIER_API_KEY" \
+        --arg apiUrl "$NOTIFIER_API_URL" \
+        '{apiKey: $apiKey, apiUrl: $apiUrl}')]"
 fi
+
+# write ripple node rpc
+
+if [ -n "$XRP_RPC_URL" ]; then
+    update_config_json ".fAssets.$FXRP_SYMBOL.walletUrls = \"${XRP_RPC_URL}\""
+else
+    update_config_json "del(.fAssets.$FXRP_SYMBOL.walletUrls)"
+fi
+
+sym=$([ $CHAIN == 'flare' -o $CHAIN == 'songbird' ] && echo XRP || echo testXRP)
+if [ -n "$XRP_RPC_API_KEY" ]; then
+    update_secrets_json ".apiKey.${sym}_rpc = \"$XRP_RPC_API_KEY\""
+else
+    update_secrets_json ".apiKey.${sym}_rpc = []"
+fi
+
+# write dal api urls and api keys
+
+dal_urls=()
+if [ -n "$DAL_URLS" ]; then
+    IFS=',' read -r -a dal_urls <<< "$DAL_URLS"
+fi
+
+dal_api_keys=()
+if [ -n "$DAL_API_KEYS" ]; then
+    IFS=',' read -r -a dal_api_keys <<< "$DAL_API_KEYS"
+fi
+
+if [ "${#dal_api_keys[@]}" -eq 0 -o "${#dal_urls[@]}" -ne "${#dal_api_keys[@]}" ]; then
+    echo "Error: 'DAL_URLS' length must equal 'DAL_API_KEYS' and have at least one value."
+    exit 1
+fi
+
+if [ "${#dal_urls[@]}" -gt 0 ]; then
+    urls=$(printf '%s\n' "${dal_urls[@]}" | jq -R . | jq -s .)
+    update_config_json ".dataAccessLayerUrls = $urls"
+else
+    update_config_json "del(.dataAccessLayerUrls)"
+fi
+
+if [ "${#dal_api_keys[@]}" -gt 0 ]; then
+    keys=$(printf '%s\n' "${dal_api_keys[@]}" | jq -R . | jq -s .)
+    update_secrets_json ".apiKey.data_access_layer = $keys"
+else
+    update_secrets_json ".apiKey.data_access_layer = []"
+fi
+
+# indexer urls and api keys
+
+xrp_indexer_urls=()
+if [ -n "$XRP_INDEXER_URLS" ]; then
+    IFS=',' read -r -a xrp_indexer_urls <<< "$XRP_INDEXER_URLS"
+fi
+
+xrp_indexer_api_keys=()
+if [ -n "$XRP_INDEXER_API_KEYS" ]; then
+    IFS=',' read -r -a xrp_indexer_api_keys <<< "$XRP_INDEXER_API_KEYS"
+fi
+
+if [ "${#xrp_indexer_api_keys[@]}" -eq 0 -a "${#xrp_indexer_urls[@]}" -eq 0 -o "${#xrp_indexer_urls[@]}" -ne "${#xrp_indexer_api_keys[@]}" ]; then
+    echo "Error: 'XRP_INDEXER_URLS' length must equal 'XRP_INDEXER_API_KEYS' and have at least one value"
+    exit 1
+fi
+
+if [ "${#xrp_indexer_urls[@]}" -gt 0 ]; then
+    urls=$(printf '%s\n' "${xrp_indexer_urls[@]}" | jq -R . | jq -s .)
+    update_config_json ".fAssets.$FXRP_SYMBOL.indexerUrls = $urls"
+else
+    update_config_json "del(.fAssets.$FXRP_SYMBOL.indexerUrls)"
+fi
+
+if [ "${#xrp_indexer_api_keys[@]}" -gt 0 ]; then
+    keys=$(printf '%s\n' "${xrp_indexer_api_keys[@]}" | jq -R . | jq -s .)
+    update_secrets_json ".apiKey.indexer = $keys"
+else
+    update_secrets_json ".apiKey.indexer = []"
+fi
+
+# change mounts owner and secrets permissions
+chown $DOCKER_USER_UID:$DOCKER_USER_UID $SECRETS_PATH;
+chown $DOCKER_USER_UID:$DOCKER_USER_UID $CONFIG_PATH;
+chown -R $DOCKER_USER_UID:$DOCKER_USER_UID ./log;
+chmod 600 $SECRETS_PATH;

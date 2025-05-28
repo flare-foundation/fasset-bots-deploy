@@ -7,6 +7,12 @@ x-templates:
     depends_on:
       postgres:
         condition: service_healthy
+  x-fasset-bot-env-template: &fasset-bot-env
+    FASSET_BOT_CONFIG: "./config.json"
+    FASSET_BOT_SECRETS: "./secrets.json"
+    FASSET_USER_CONFIG: "./config.json"
+    FASSET_USER_SECRETS: "./secrets.json"
+    LOG_TARGET: ${LOG_TARGET:-}
 
 services:
   postgres:
@@ -32,11 +38,9 @@ services:
     profiles: [agent]
     container_name: ${COMPOSE_PROJECT_NAME}
     environment:
+      <<: *fasset-bot-env
       FRONTEND_PASSWORD: ${FRONTEND_PASSWORD}
       ROOT_PATH: ${BACKEND_PATH:-}
-      LOG_TARGET: ${LOG_TARGET:-}
-      FASSET_BOT_CONFIG: "./config.json"
-      FASSET_BOT_SECRETS: "./secrets.json"
     ports:
       - "$BACKEND_PORT:1234"
     volumes:
@@ -49,55 +53,49 @@ services:
     <<: *fasset-bot
     profiles: [liquidator]
     container_name: ${COMPOSE_PROJECT_NAME}-liquidator
+    environment:
+      <<: *fasset-bot-env
     volumes:
       - ./secrets.json:/usr/src/app/secrets.json
       - ./config.json:/usr/src/app/config.json
       - ./log/liquidator:/usr/src/app/log/
-    environment:
-      LOG_TARGET: ${LOG_TARGET}
-      FASSET_BOT_CONFIG: "./config.json"
-      FASSET_BOT_SECRETS: "./secrets.json"
     command: "./entry.sh run-liquidator"
 
   challenger:
     <<: *fasset-bot
     profiles: [challenger]
     container_name: ${COMPOSE_PROJECT_NAME}-challenger
+    environment:
+      <<: *fasset-bot-env
     volumes:
       - ./secrets.json:/usr/src/app/secrets.json
       - ./config.json:/usr/src/app/config.json
       - ./log/challenger:/usr/src/app/log/
-    environment:
-      LOG_TARGET: ${LOG_TARGET}
-      FASSET_BOT_CONFIG: "./config.json"
-      FASSET_BOT_SECRETS: "./secrets.json"
     command: "./entry.sh run-challenger"
 
   agent-bot:
     <<: *fasset-bot
     profiles: [cli]
     container_name: ${COMPOSE_PROJECT_NAME}-agent-bot
+    environment:
+      <<: *fasset-bot-env
     volumes:
       - ./secrets.json:/usr/src/app/secrets.json
       - ./config.json:/usr/src/app/config.json
       - ./log/agent-bot:/usr/src/app/log/
     entrypoint: ["yarn", "agent-bot"]
-    environment:
-      FASSET_BOT_CONFIG: "./config.json"
-      FASSET_BOT_SECRETS: "./secrets.json"
 
   user-bot:
     <<: *fasset-bot
     profiles: [cli]
     container_name: ${COMPOSE_PROJECT_NAME}-user-bot
+    environment:
+      <<: *fasset-bot-env
     volumes:
       - ./secrets.json:/usr/src/app/secrets.json
       - ./config.json:/usr/src/app/config.json
       - ./log/user-bot:/usr/src/app/log/
     entrypoint: ["yarn", "user-bot"]
-    environment:
-      FASSET_USER_SECRETS: "./secrets.json"
-      FASSET_USER_CONFIG: "./config.json"
 
   ui:
     profiles: [agent-ui]
