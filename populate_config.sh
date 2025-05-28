@@ -6,6 +6,11 @@ if ! command -v jq > /dev/null 2>&1; then
   exit 1
 fi
 
+if [[ "$UID" -ne 1000 -a "$UID" -ne 0 ]]; then
+    echo "error: running with non-root user with UID $UID != 1000.."
+    exit 1;
+fi
+
 # import .env
 source <(grep -v '^#' "./.env" | sed -E 's|^(.+)=(.*)$|: ${\1=\2}; export \1|g')
 

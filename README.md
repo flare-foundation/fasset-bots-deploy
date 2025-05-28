@@ -9,6 +9,8 @@ Docker Compose version v2.24.7 or higher
 
 Tested on Ubuntu 22.04.4 LTS.
 
+> **Note:** It is recommended that you operate under user with $UID 1000 or run everything with root privileges via `sudo`.
+
 ## Prerequisites
 
 - Your agent management address must be whitelisted.
@@ -56,13 +58,13 @@ Profiles
 
 ### Generate secrets.json
 
-To generate accounts needed by the bot automatically, choose a secure agent management EVM address and run `bash populate_config.sh <address>`.
+To generate accounts needed by the bot automatically, choose a secure agent management EVM address and run `bash generate_secrets.sh <address>`.
 
 Make backup of the `secrets.json`.
 
 ### Generate / update configuration
 
-To generate or update configuration after `.env` file change, run
+To generate or update configuration after `.env` file change, run with root privileges
 ```
 bash populate_config.sh
 ```
