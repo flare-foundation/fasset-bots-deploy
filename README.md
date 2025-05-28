@@ -31,8 +31,22 @@ Make sure you follow best practices to protect your server and data.
 All settings are in `.env.template`.
 
 This must be set:
-- machine address `MACHINE_ADDRESS`. This is either the IP or domain name of the machine running front and back end.
-For security reasons, it is recommended to use a local network IP or configure firewall so that `MACHINE_ADDRESS` can be access only from your IP.
+- chain `CHAIN` (coston, coston2, songbird, or flare),
+- native rpc belonging to the chain network:
+    - url as `NATIVE_RPC_URL`,
+    - api key as `NATIVE_RPC_API_KEY`.
+- Ripple rpc:
+    - url as `XRP_RPC_URL`,
+    - api key as `XRP_RPC_API_KEY`.
+- data access layer:
+    - urls as `DAL_URLS`,
+    - api keys as `DAL_API_KEYS`.
+- Ripple indexer:
+    - urls as `XRP_INDEXER_URLS`,
+    - api keys as `XRP_INDEXER_API_KEYS`.
+- machine address `MACHINE_ADDRESS`. This is either the IP or domain name of the machine running front and back end. For security reasons, it is recommended to use a local network IP or configure firewall so that `MACHINE_ADDRESS` can be access only from your IP.
+
+Note that for data access layer and Ripple indexer it is possible to specify multiple urls separated by "," and without spaces. The api keys need to match the url positions. If no api key is needed for the matching url (due to e.g. IP restricted access), input `x`.
 
 Profiles
 - agent
@@ -42,13 +56,9 @@ Profiles
 
 ### Generate secrets.json
 
-To generate accounts needed by the bot automatically, choose a secure agent management EVM address and write it under `AGENT_MANAGEMENT_ADDRESS` inside `.env` file, then run `bash populate_config.sh`.
-
-Set file mode to 600 `chmod 600 secrets.json` and file ownership to user 1000 `chown 1000:1000 secrets.json`.
+To generate accounts needed by the bot automatically, choose a secure agent management EVM address and run `bash populate_config.sh <address>`.
 
 Make backup of the `secrets.json`.
-
-Make sure to setup rpc/DAL/FDC api keys.
 
 ### Generate / update configuration
 
@@ -100,8 +110,7 @@ docker compose --profile cli run user-bot info --fasset FASSET
 
 ### Backup
 
-Make sure you backup at least:
-- `.env`
+Make sure you backup:
 - `secrets.json`
-- `config.json`
+- `.env`
 -  database docker volume (default: `fasset-agent_postgres-db`)

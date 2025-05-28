@@ -2,7 +2,7 @@
 
 # require installed jq
 if ! command -v jq > /dev/null 2>&1; then
-  echo "Error: jq is not installed."
+  echo "error: jq is not installed."
   exit 1
 fi
 
