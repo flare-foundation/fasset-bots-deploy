@@ -1,6 +1,6 @@
 x-templates:
   x-fasset-bot-template: &fasset-bot
-    image: ghcr.io/flare-foundation/fasset-bots:latest
+    image: ghcr.io/flare-foundation/fasset-bots:${DOCKER_IMAGE_TAG}
     restart: unless-stopped
     stdin_open: true
     tty: true
