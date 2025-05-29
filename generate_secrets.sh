@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+source <(grep -v '^#' "./.env" | sed -E 's|^(.+)=(.*)$|: ${\1=\2}; export \1|g')
+
+
 generate_secrets() {
     echo $(
         docker run --rm -v $PWD/config/secrets.json.template:/usr/src/app/secrets.json.template \
