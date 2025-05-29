@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
 
+# import .env
+source <(grep -v '^#' "./.env" | sed -E 's|^(.+)=(.*)$|: ${\1=\2}; export \1|g')
+
+# first do some basic checks
+
 # require installed jq
 if ! command -v jq > /dev/null 2>&1; then
-  echo "error: jq is not installed."
-  exit 1
+    echo "error: jq is not installed."
+    exit 1
 fi
 
 if [ "$UID" -ne 1000 -a "$UID" -ne 0 ]; then
-    echo "error: running with non-root user with UID $UID != 1000.."
-    exit 1;
+    echo "error: running with non-root user with UID $UID != 1000."
+    exit 1
 fi
 
-# import .env
-source <(grep -v '^#' "./.env" | sed -E 's|^(.+)=(.*)$|: ${\1=\2}; export \1|g')
+if [[ ! "$MACHINE_ADDRESS" =~ ^https?:// ]]; then
+    echo "error: machine address should start with 'http' or 'https'"
+    exit 1
+fi
 
 # params
 DOCKER_USER_UID=1000
@@ -107,8 +114,8 @@ else
     exit 1
 fi
 
-sym=$([ $CHAIN == 'flare' -o $CHAIN == 'songbird' ] && echo XRP || echo testXRP)
 if [ -n "$XRP_RPC_API_KEY" ]; then
+    sym=$([ $CHAIN == 'flare' -o $CHAIN == 'songbird' ] && echo XRP || echo testXRP)
     update_secrets_json ".apiKey.${sym}_rpc = [\"$XRP_RPC_API_KEY\"]"
 else
     echo "error: .env variable 'XRP_RPC_API_KEY' is required."
@@ -180,7 +187,8 @@ else
     exit 1
 fi
 
-# write notifier api key inside config
+# write notifier api key config
+
 push_notifier_config=1
 if ! jq -e 'has("apiNotifierConfigs")' $CONFIG_PATH > /dev/null; then
     update_config_json '.apiNotifierConfigs = []'
