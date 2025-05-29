@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
-
-# import .env
 source <(grep -v '^#' "./.env" | sed -E 's|^(.+)=(.*)$|: ${\1=\2}; export \1|g')
 
-# first do some basic checks
+# params
 
-# require installed jq
+DOCKER_USER_UID=1000
+CONFIG_PATH="$PWD/config.json"
+SECRETS_PATH="$PWD/secrets.json"
+
+FXRP_SYMBOL=FXRP
+if [ $CHAIN == 'coston' -o $CHAIN == 'coston2' ]; then
+    FXRP_SYMBOL=FTestXRP
+fi
+
+# do some basic checks
+
 if ! command -v jq > /dev/null 2>&1; then
     echo "error: jq is not installed."
     exit 1
@@ -16,19 +24,15 @@ if [ "$UID" -ne 1000 -a "$UID" -ne 0 ]; then
     exit 1
 fi
 
+if [ ! -e $SECRETS_PATH ]; then
+    echo "error: file $SECRETS_PATH does not exist. Run 'bash generate_secrets.sh <agent management address>' and securly store a copy."
+    exit 1
+fi
+
 if [[ ! "$MACHINE_ADDRESS" =~ ^https?:// ]]; then
     echo "error: machine address should start with 'http' or 'https'"
     exit 1
 fi
-
-# params
-DOCKER_USER_UID=1000
-CONFIG_PATH="$PWD/config.json"
-SECRETS_PATH="$PWD/secrets.json"
-
-# consts
-NOTIFIER_API_URL="http://localhost:1234$BACKEND_PATH"
-FXRP_SYMBOL=$([ $CHAIN == 'flare' -o $CHAIN == 'songbird' ] && echo FXRP || echo FTestXRP)
 
 safe_json_update() {
     tmp="$(mktemp "$(dirname "$2")/config.XXXXXX.json")"
@@ -55,13 +59,6 @@ fetch_config_json() {
 fetch_secrets_json() {
     cat "$SECRETS_PATH" | jq "$1"
 }
-
-# create secrets if not exist
-if [ ! -e $SECRETS_PATH ]; then
-    echo "secrets file $SECRETS_PATH does not exist, please generate one using \
-    'bash generate_secrets.sh <agent management address>' and securly store a copy." | sed 's/  */ /g'
-    exit 1
-fi
 
 # create config if not exists
 if [ ! -e $CONFIG_PATH ]; then
@@ -189,6 +186,8 @@ fi
 
 # write notifier api key config
 
+NOTIFIER_API_URL="http://localhost:1234$BACKEND_PATH"
+
 push_notifier_config=1
 if ! jq -e 'has("apiNotifierConfigs")' $CONFIG_PATH > /dev/null; then
     update_config_json '.apiNotifierConfigs = []'
@@ -209,7 +208,7 @@ if [ $push_notifier_config == 1 ]; then
 fi
 
 # change mounts owner and secrets permissions
-chown $DOCKER_USER_UID:$DOCKER_USER_UID $SECRETS_PATH;
-chown $DOCKER_USER_UID:$DOCKER_USER_UID $CONFIG_PATH;
-chown -R $DOCKER_USER_UID:$DOCKER_USER_UID ./log;
-chmod 600 $SECRETS_PATH;
+chown $DOCKER_USER_UID:$DOCKER_USER_UID $SECRETS_PATH
+chown $DOCKER_USER_UID:$DOCKER_USER_UID $CONFIG_PATH
+chown -R $DOCKER_USER_UID:$DOCKER_USER_UID ./log
+chmod 600 $SECRETS_PATH
