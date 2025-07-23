@@ -34,6 +34,11 @@ if [[ ! "$MACHINE_ADDRESS" =~ ^https?:// ]]; then
     exit 1
 fi
 
+if ! jq -e ".pricePublisher" $SECRETS_PATH > /dev/null; then
+    echo "error: pricePublisher account must be present in secrets.json"
+    exit 1
+fi
+
 safe_json_update() {
     tmp="$(mktemp "$(dirname "$2")/config.XXXXXX.json")"
     if ! jq "$1" "$2" > "$tmp"; then
@@ -67,6 +72,9 @@ fi
 
 # write chain config
 update_config_json ".extends = \"$CHAIN-bot-postgresql.json\""
+
+# enable price publishing
+update_config_json ".pricePublisherConfig.enabled = true"
 
 # write database config
 update_config_json ".
