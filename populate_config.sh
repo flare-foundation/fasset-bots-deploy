@@ -39,6 +39,14 @@ if ! jq -e ".pricePublisher" $SECRETS_PATH > /dev/null; then
     exit 1
 fi
 
+if [[ $XRP_RPC_URL == *","* ]] || [[ $XRP_RPC_API_KEY == *","* ]]; then
+    echo "error: due to inconsistent states between nodes 'XRP_RPC_URL' and 'XRP_RPC_URL' must be of length one."
+fi
+
+if [[ $NATIVE_RPC_URL == *","* ]] || [[ $NATIVE_RPC_API_KEY == *","* ]]; then
+    echo "error: due to inconsistent states between nodes 'NATIVE_RPC_URL' and 'NATIVE_RPC_API_KEY' must be of length one."
+fi
+
 safe_json_update() {
     tmp="$(mktemp "$(dirname "$2")/config.XXXXXX.json")"
     if ! jq "$1" "$2" > "$tmp"; then
