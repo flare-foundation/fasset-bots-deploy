@@ -17,7 +17,7 @@ x-templates:
 services:
   postgres:
     profiles: [agent,liquidator,challenger,cli]
-    image: postgres:15
+    image: postgres:15.13
     container_name: ${COMPOSE_PROJECT_NAME}-postgres
     restart: unless-stopped
     environment:
