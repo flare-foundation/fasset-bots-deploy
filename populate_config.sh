@@ -223,6 +223,13 @@ if [ $push_notifier_config == 1 ]; then
         '{apiKey: $apiKey, apiUrl: $apiUrl}')]"
 fi
 
+# write operational bot settings
+
+if [ -z "$AUTOMATE_CORE_VAULT_TRANSFERS" ]; then
+    AUTOMATE_CORE_VAULT_TRANSFERS=false
+fi
+update_config_json ".agentBotSettings.fAssets.$FXRP_SYMBOL.useAutomaticCoreVaultTransferAndReturn = $AUTOMATE_CORE_VAULT_TRANSFERS"
+
 # change mounts owner and secrets permissions
 chown $DOCKER_USER_UID:$DOCKER_USER_UID $SECRETS_PATH
 chown $DOCKER_USER_UID:$DOCKER_USER_UID $CONFIG_PATH
