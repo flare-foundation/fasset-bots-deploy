@@ -32,6 +32,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $FASSET_DB_USER -d ${FASSET_DB_NAME} -h 127.0.0.1"]
       timeout: 20s
       retries: 10
+    # required by the graceful period of the app service
+    stop_grace_period: 120s
 
   app:
     <<: *fasset-bot
@@ -48,6 +50,9 @@ services:
       - ./config.json:/usr/src/app/config.json
       - ./log/app:/usr/src/app/log/
     command: "./entry.sh run-bots"
+    # allows the agent bot to cleanup wallet monitoring threads
+    # should take 30s but due to severe impact we set 120s
+    stop_grace_period: 120s
 
   liquidator:
     <<: *fasset-bot
