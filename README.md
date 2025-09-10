@@ -78,7 +78,8 @@ Fund your work address with native token (e.g. SGB, FLR) and vault token (e.g. U
 Fund your underlying address with underlying token (e.g. XRP, BTC) (get addressed from file `secrets.json` key `owner.<token>.address`).
 
 Setup your work address:
-- on [Songbird](https://songbird-explorer.flare.network/address/0xa7f5d3C81f55f2b072FB62a0D4A03317BFd1a3c0/write-contract#address-tabs).
+- on [Songbird](https://songbird-explorer.flare.network/address/0x7b514cE1E3733b94342e0550831d601926088380?tab=read_write_proxy),
+- on [Flare](https://flare-explorer.flare.network/address/0xD2593336C6C4Bfd261FEEf0A23F113cD7d018fa2?tab=read_write_proxy).
 
 ### Start up
 
