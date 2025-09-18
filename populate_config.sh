@@ -224,12 +224,36 @@ if [ $push_notifier_config == 1 ]; then
         '{apiKey: $apiKey, apiUrl: $apiUrl}')]"
 fi
 
-# write operational bot settings
+# write core vault automation config
 
 if [ -z "$AUTOMATE_CORE_VAULT_TRANSFERS" ]; then
     AUTOMATE_CORE_VAULT_TRANSFERS=false
 fi
 update_config_json ".agentBotSettings.fAssets.$FXRP_SYMBOL.useAutomaticCoreVaultTransferAndReturn = $AUTOMATE_CORE_VAULT_TRANSFERS"
+
+if [ -n "$TRANSFER_TO_CORE_VAULT_THRESHOLD_RATIO" ]; then
+    update_config_json ".agentBotSettings.fAssets.$FXRP_SYMBOL.transferToCVRatio = $TRANSFER_TO_CORE_VAULT_THRESHOLD_RATIO"
+else
+    update_config_json "del(.agentBotSettings.fAssets.$FXRP_SYMBOL.transferToCVRatio)"
+fi
+
+if [ -n "$TRANSFER_TO_CORE_VAULT_TARGET_RATIO" ]; then
+    update_config_json ".agentBotSettings.fAssets.$FXRP_SYMBOL.targetTransferToCVRatio = $TRANSFER_TO_CORE_VAULT_TARGET_RATIO"
+else
+    update_config_json "del(.agentBotSettings.fAssets.$FXRP_SYMBOL.targetTransferToCVRatio)"
+fi
+
+if [ -n "$RETURN_FROM_CORE_VAULT_THRESHOLD_RATIO" ]; then
+    update_config_json ".agentBotSettings.fAssets.$FXRP_SYMBOL.returnFromCVRatio = $RETURN_FROM_CORE_VAULT_THRESHOLD_RATIO"
+else
+    update_config_json "del(.agentBotSettings.fAssets.$FXRP_SYMBOL.returnFromCVRatio)"
+fi
+
+if [ -n "$RETURN_FROM_CORE_VAULT_TARGET_RATIO" ]; then
+    update_config_json ".agentBotSettings.fAssets.$FXRP_SYMBOL.targetReturnFromCVRatio = $RETURN_FROM_CORE_VAULT_TARGET_RATIO"
+else
+    update_config_json "del(.agentBotSettings.fAssets.$FXRP_SYMBOL.targetReturnFromCVRatio)"
+fi
 
 # change mounts owner and secrets permissions
 chown $DOCKER_USER_UID:$DOCKER_USER_UID $SECRETS_PATH
