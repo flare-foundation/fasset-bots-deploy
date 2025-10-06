@@ -243,6 +243,12 @@ else
     update_config_json "del(.agentBotSettings.fAssets.$FXRP_SYMBOL.targetTransferToCVRatio)"
 fi
 
+if [ -n "$TRANSFER_TO_CORE_VAULT_MIN_SIZE" ]; then
+    update_config_json ".agentBotSettings.fAssets.$FXRP_SYMBOL.minimumTransferToCVSize = $TRANSFER_TO_CORE_VAULT_MIN_SIZE"
+else
+    update_config_json "del(.agentBotSettings.fAssets.$FXRP_SYMBOL.minimumTransferToCVSize)"
+fi
+
 if [ -n "$RETURN_FROM_CORE_VAULT_THRESHOLD_RATIO" ]; then
     update_config_json ".agentBotSettings.fAssets.$FXRP_SYMBOL.returnFromCVRatio = $RETURN_FROM_CORE_VAULT_THRESHOLD_RATIO"
 else
